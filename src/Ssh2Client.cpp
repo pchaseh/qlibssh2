@@ -32,6 +32,7 @@ SOFTWARE.
 
 #include <QtCore/QTimer>
 #include <QtNetwork/QHostAddress>
+#include <QCoreApplication>
 
 using namespace qlibssh2;
 
@@ -42,17 +43,15 @@ std::atomic<size_t> ssh2_initializations_count(0);
 
 void initializeSsh2()
 {
-    if (ssh2_initializations_count == 0)
+    if (ssh2_initializations_count == 0) {
         libssh2_init(0);
+        QObject::connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit,
+                         QCoreApplication::instance(), []()
+                         {
+                             libssh2_exit();
+                         });
+    }
     ssh2_initializations_count++;
-};
-
-void freeSsh2()
-{
-    if (ssh2_initializations_count == 1)
-        libssh2_exit();
-    if (ssh2_initializations_count > 0)
-        ssh2_initializations_count--;
 };
 
 ssize_t libssh_recv(int socket, void* buffer, size_t length, int flags, void** abstract)
@@ -94,7 +93,9 @@ Ssh2Client::Ssh2Client(Ssh2Settings ssh2_settings,
     connect(this, &QTcpSocket::connected, this, &Ssh2Client::onTcpConnected);
     connect(this, &QTcpSocket::disconnected, this, &Ssh2Client::onTcpDisconnected);
     connect(this, &QTcpSocket::readyRead, this, &Ssh2Client::onReadyRead);
-    connect(this, &QTcpSocket::stateChanged, this, &Ssh2Client::onSocketStateChanged);
+    // Workaround for "Called object is not of the correct type (class destructor may have already run)"
+    // connect(this, &QTcpSocket::stateChanged, this, &Ssh2Client::onSocketStateChanged);
+    connect(this, &QTcpSocket::stateChanged, this, [this](const QAbstractSocket::SocketState &state) {this->onSocketStateChanged(state);});
 
     initializeSsh2();
 }
@@ -104,7 +105,6 @@ Ssh2Client::~Ssh2Client()
     closeSession();
     if (state() == ConnectedState)
         waitForDisconnected();
-    freeSsh2();
 }
 
 void Ssh2Client::connectToHost(const QString& hostName, qint16 port)
@@ -263,9 +263,8 @@ void Ssh2Client::onSocketStateChanged(const QAbstractSocket::SocketState& state)
 {
     switch (state) {
     case QAbstractSocket::UnconnectedState:
-        if (ssh2_state_ != NotEstableshed) {
+        if (ssh2_state_ != NotEstableshed)
             setSsh2SessionState(FailedToEstablish, Ssh2Error::TcpConnectionError);
-        }
         break;
     case QAbstractSocket::ConnectingState:
         QTimer::singleShot(ssh2_settings_.timeout, this, &Ssh2Client::checkConnection);
@@ -516,6 +515,9 @@ QPointer<Ssh2LocalPortForwarding> Ssh2Client::localPortForwarding(const QHostAdd
     auto* ssh2_local_port_forwarding = new Ssh2LocalPortForwarding(localListenHost, localListenPort,
                                                                    remoteHost, remoteListenPort, this);
     addChannel(ssh2_local_port_forwarding);
+    // TODO: This shouldn't be needed, but listen() otherwise never
+    // gets called for the server
+    ssh2_local_port_forwarding->openChannelSession();
     return ssh2_local_port_forwarding;
 }
 
