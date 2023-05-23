@@ -23,13 +23,13 @@ SOURCES += \
 
 HEADERS += \
     include/QLibSSH2_global.h \
-    include\Ssh2Channel.h \
-    include\Ssh2Debug.h \
-    include\Ssh2Scp.h \
-    include\Ssh2Types.h \
-    include\Ssh2Client.h \
-    include\Ssh2LocalPortForwarding.h \
-    include\Ssh2Process.h
+    include/Ssh2Channel.h \
+    include/Ssh2Debug.h \
+    include/Ssh2Scp.h \
+    include/Ssh2Types.h \
+    include/Ssh2Client.h \
+    include/Ssh2LocalPortForwarding.h \
+    include/Ssh2Process.h
 
 LIBS += -L$$PWD/3rdparty/libssh2/lib -llibssh2
 
