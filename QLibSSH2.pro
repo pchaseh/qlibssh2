@@ -31,10 +31,9 @@ HEADERS += \
     include\Ssh2LocalPortForwarding.h \
     include\Ssh2Process.h
 
-win32: LIBS += -L$$PWD/libssh2/libssh2.dll $$PWD/libssh2/libssh2.lib
+LIBS += -L$$PWD/3rdparty/libssh2/lib -llibssh2
 
-INCLUDEPATH += $$PWD/libssh2/build/include
-DEPENDPATH += $$PWD/libssh2/build/include
+INCLUDEPATH += $$PWD/3rdparty/libssh2/include
 
 
 # Default rules for deployment.

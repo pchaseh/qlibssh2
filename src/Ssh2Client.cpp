@@ -90,11 +90,11 @@ Ssh2Client::Ssh2Client(Ssh2Settings ssh2_settings,
     , ssh2_session_(nullptr)
     , known_hosts_(nullptr)
 {
+    // Workaround for "Called object is not of the correct type (class destructor may have already run)"
+    // connect(this, &QTcpSocket::stateChanged, this, &Ssh2Client::onSocketStateChanged);
     connect(this, &QTcpSocket::connected, this, &Ssh2Client::onTcpConnected);
     connect(this, &QTcpSocket::disconnected, this, &Ssh2Client::onTcpDisconnected);
     connect(this, &QTcpSocket::readyRead, this, &Ssh2Client::onReadyRead);
-    // Workaround for "Called object is not of the correct type (class destructor may have already run)"
-    // connect(this, &QTcpSocket::stateChanged, this, &Ssh2Client::onSocketStateChanged);
     connect(this, &QTcpSocket::stateChanged, this, [this](const QAbstractSocket::SocketState &state) {this->onSocketStateChanged(state);});
 
     initializeSsh2();
