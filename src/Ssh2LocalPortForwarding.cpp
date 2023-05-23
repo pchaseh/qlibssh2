@@ -48,7 +48,6 @@ void Ssh2LocalPortForwarding::checkIncomingData()
     std::error_code error_code = ssh2_success;
     switch (channelState()) {
     case ChannelStates::Opening:
-
         switch (forwardState_) {
         case ForwardState::NotOpen:
             error_code = startListening();
@@ -71,7 +70,8 @@ void Ssh2LocalPortForwarding::checkIncomingData()
     case ChannelStates::Closing:
         error_code = closeChannelSession();
         break;
-    default:;
+    default:
+        break;
     }
 
     setLastError(error_code);
@@ -104,19 +104,19 @@ std::error_code Ssh2LocalPortForwarding::openChannelSession()
         return startListening();
     }
 
+    libssh2_trace(ssh2Client()->ssh2Session(), LIBSSH2_TRACE_CONN | LIBSSH2_TRACE_ERROR | LIBSSH2_TRACE_TRANS | LIBSSH2_TRACE_SOCKET);
+
     ssh2_channel_ = libssh2_channel_direct_tcpip_ex(
         ssh2Client()->ssh2Session(),
         remoteListenIp_.toString().toLatin1().data(), remoteListenPort_,
         localListenIp_.toString().toLatin1().data(), forwardSocket_->peerPort());
 
     int ssh2_method_result = 0;
-    if (!ssh2_channel_) {
+    if (!ssh2_channel_)
         ssh2_method_result = libssh2_session_last_error(ssh2Client()->ssh2Session(),
                                                         nullptr,
                                                         nullptr,
-                                                        0);
-    }
-
+                                                       0);
     switch (ssh2_method_result) {
     case LIBSSH2_ERROR_EAGAIN:
         setSsh2ChannelState(Opening);
@@ -128,8 +128,13 @@ std::error_code Ssh2LocalPortForwarding::openChannelSession()
                 this, &Ssh2LocalPortForwarding::onReadyReadForward);
         connect(forwardSocket_, &QTcpSocket::disconnected,
                 this, &Ssh2LocalPortForwarding::closeChannelSession);
+
+        if (forwardSocket_->bytesAvailable() > 0)
+            onReadyReadForward();
+
         break;
     default: {
+
         debugSsh2Error(ssh2_method_result);
         error_code = Ssh2Error::FailedToOpenChannel;
         setSsh2ChannelState(FailedToOpen);
@@ -189,9 +194,9 @@ void Ssh2LocalPortForwarding::onReadyReadServer()
     QByteArray buffer{65536, 0}; // 2^16
     do {
         auto readBytes = readData(buffer.data(), buffer.length());
-        if (readBytes <= 0) {
+        if (readBytes <= 0)
             break;
-        }
+
         forwardSocket_->write(buffer.data(), readBytes);
         forwardSocket_->flush();
     } while (1);

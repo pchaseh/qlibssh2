@@ -21,19 +21,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include "Ssh2Debug.h"
-#include "Ssh2Types.h"
+#pragma once
 
-#include <QtCore/QDebug>
+#include <system_error>
+#include "QLibSSH2_global.h"
 
-using namespace qlibssh2;
-
-bool qlibssh2::checkSsh2Error(const std::error_code& error_code)
+namespace qlibssh2
 {
-    return error_code == ssh2_success || error_code == Ssh2Error::TryAgain;
-}
 
-void qlibssh2::debugSsh2Error(const int ssh2_method_result)
-{
-    qDebug() << "Ssh2 error: " << ssh2_method_result;
-}
+QLIBSSH2_EXPORT void debugSsh2Error(const int ssh2_method_result);
+QLIBSSH2_EXPORT bool checkSsh2Error(const std::error_code& error_code);
+
+} // namespace qlibssh2
